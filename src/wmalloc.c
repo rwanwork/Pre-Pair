@@ -1,25 +1,14 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+/*******************************************************************/
+/*!
+    \file wmalloc.c
+    Wrapper functions for allocation memory.
+    
+    $LastChangedDate: 2013-09-10 02:02:18 +0800 (Tue, 10 Sep 2013) $
+    $LastChangedRevision: 10 $
+
 */
+/*******************************************************************/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,16 +17,16 @@
 #include "common-def.h"
 #include "wmalloc.h"
 
-static R_UINT inuse_malloc = 0;
-static R_UINT max_malloc = 0;
+static unsigned int inuse_malloc = 0;
+static unsigned int max_malloc = 0;
 static WMSTRUCT **wm_array;
-static R_CHAR *tempstr;
+static char *tempstr;
 
 void *wmalloc (size_t y_arg) {
   void *x_arg = malloc (y_arg);
   if (x_arg == NULL) {
-    fprintf (stderr, "Error in malloc while allocating %u bytes in [%s, %u].\n", (R_UINT) y_arg, __FILE__, __LINE__);
-    exit (EXIT_FAILURE);  
+    fprintf (stderr, "Error in malloc while allocating %u bytes in [%s, %u].\n", (unsigned int) y_arg, __FILE__, __LINE__);
+    exit (EXIT_FAILURE);
   }
 #ifdef COUNT_MALLOC
   countMalloc (x_arg, y_arg, __FILE__, __LINE__);
@@ -54,7 +43,7 @@ void *wrealloc (void *x_arg, size_t y_arg) {
   x_arg = realloc (x_arg, y_arg);
 
   if (x_arg == NULL) {
-    fprintf (stderr, "Error in realloc while allocating %u bytes in [%s, %u].\n", (R_UINT) y_arg, __FILE__, __LINE__);
+    fprintf (stderr, "Error in realloc while allocating %u bytes in [%s, %u].\n", (unsigned int) y_arg, __FILE__, __LINE__);
     exit (EXIT_FAILURE);
   }
 #ifdef COUNT_MALLOC
@@ -75,27 +64,27 @@ void wfree (void *x_arg) {
 **  Function adapted from Algorithms in C (Third edition) by Robert Sedgewick
 **  (page 578)
 */
-static R_UINT hash (R_CHAR *v, R_INT M) {
-  R_INT h = 0;
-  R_INT a = 127;
+static unsigned int hash (char *v, int M) {
+  int h = 0;
+  int a = 127;
 
   /*  Skip the 0x at the beginning  */
   v += 2;
   for (; *v != '\0'; v++) {
-    h = (a*h + (R_INT) *v) % M;
+    h = (a*h + (int) *v) % M;
   }
 
-  return ((R_UINT) h);
+  return ((unsigned int) h);
 }
 
 void initWMalloc () {
   WMSTRUCT *node = NULL;
-  R_UINT i = 0;
+  unsigned int i = 0;
 
   inuse_malloc = 0;
   max_malloc = 0;
 
-  tempstr = wmalloc (sizeof (R_CHAR) * TEMPSTRLEN);
+  tempstr = wmalloc (sizeof (char) * TEMPSTRLEN);
 
   wm_array = wmalloc (sizeof (WMSTRUCT*) * WM_SIZE);
   for (i = 0; i < WM_SIZE; i++) {
@@ -123,14 +112,14 @@ void printWMalloc () {
 
 
 void printInUseWMalloc (void) {
-  R_UINT i = 0;
+  unsigned int i = 0;
   WMSTRUCT *curr = NULL;
 
   for (i = 0; i < WM_SIZE; i++) {
     if (wm_array[i] -> ptr != NULL) {
       curr = wm_array[i];
       while (curr -> ptr != NULL) {
-        fprintf (stderr, "%p\t(%u)\t[%s]\t[%u]\n", curr -> ptr, (R_UINT) curr -> size, curr -> file, curr -> line);
+        fprintf (stderr, "%p\t(%u)\t[%s]\t[%u]\n", curr -> ptr, (unsigned int) curr -> size, curr -> file, curr -> line);
         curr = curr -> next;
       }
     }
@@ -140,9 +129,9 @@ void printInUseWMalloc (void) {
 }
 
 
-void countMalloc (void *ptr, size_t amount, const R_CHAR *file, const R_UINT line) {
+void countMalloc (void *ptr, size_t amount, const char *file, const unsigned int line) {
   WMSTRUCT *node = NULL;
-  R_UINT pos = 0;
+  unsigned int pos = 0;
 
   node = wmalloc (sizeof (WMSTRUCT));
   node -> ptr = ptr;
@@ -169,7 +158,7 @@ void countMalloc (void *ptr, size_t amount, const R_CHAR *file, const R_UINT lin
 void countFree (void *ptr) {
   WMSTRUCT *prev = NULL;
   WMSTRUCT *curr = NULL;
-  R_UINT pos = 0;
+  unsigned int pos = 0;
 
   (void) snprintf (tempstr, TEMPSTRLEN, "%p", ptr);
   pos = hash (tempstr, WM_SIZE);

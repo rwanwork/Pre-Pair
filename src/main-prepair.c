@@ -1,26 +1,3 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -28,6 +5,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "common-def.h"
 #include "wmalloc.h"
@@ -37,6 +15,10 @@
 #include "word.h"
 #include "nonword.h"
 #include "prepair.h"
+
+/*  Pull the configuration file in  */
+#include "PrePairConfig.h"
+
 
 static void usage (char *progname) {
   fprintf (stderr, "Pre-pair (Re-Pair Word-based Pre-processor)\n");
@@ -60,33 +42,35 @@ static void usage (char *progname) {
   fprintf (stderr, "\tNonwords are encoded using ");
   fprintf (stderr, "no coding.\n");
   fprintf (stderr, "\nThe input text file is from stdin.\n");
-  fprintf (stderr, "The output text file is sent to stdout.\n");
-  fprintf (stderr, "Pre-pair version: %s (%s)\n\n", __DATE__, __TIME__);
+  fprintf (stderr, "The output text file is sent to stdout.\n\n");
+  
+  fprintf (stderr, "Pre-Pair version %u.%u\n", PrePair_VERSION_MAJOR, PrePair_VERSION_MINOR);
+  fprintf (stderr, "Compiled on:  %s (%s)\n\n", __DATE__, __TIME__);
   exit (EXIT_SUCCESS);
 }
 
-R_INT main (R_INT argc, R_CHAR **argv) {
-  R_CHAR *progname = argv[0];
-  R_UCHAR *filename = NULL;
-  R_BOOLEAN verbose_level = R_FALSE;
+int main (int argc, char **argv) {
+  char *progname = argv[0];
+  unsigned char *filename = NULL;
+  bool verbose_level = false;
   FILE_STRUCT *file_info = NULL;
   WORD_STRUCT *word_info = NULL;
   NONWORD_STRUCT *nonword_info = NULL;
 
-  R_INT c;
+  int c;
   enum PROGMODE mode = 0;
 
   /*  Temporary variables used by getopt  */
-  R_BOOLEAN docasefold = R_FALSE;
-  R_UINT maxword = MAXWORDLEN;
-  R_BOOLEAN dostem = R_FALSE;
-  R_BOOLEAN printsorted = R_FALSE;
+  bool docasefold = false;
+  unsigned int maxword = MAXWORDLEN;
+  bool dostem = false;
+  bool printsorted = false;
 
   if (argc == 1) {
     usage (progname);
   }
 
-  while (R_TRUE) {
+  while (true) {
     c = getopt (argc, argv, "cdehi:lm:npsv?");
     if (c == EOF) {
       break;
@@ -94,7 +78,7 @@ R_INT main (R_INT argc, R_CHAR **argv) {
 
     switch (c) {
     case 'c':
-      docasefold = R_TRUE;
+      docasefold = true;
       break;
     case 'd':
       if (mode != MODE_NONE) {
@@ -115,11 +99,11 @@ R_INT main (R_INT argc, R_CHAR **argv) {
       usage (progname);
       break;
     case 'i':
-      filename = wmalloc (sizeof (R_UCHAR) * strlen (optarg) + 1);
-      ustrcpy (filename, (R_UCHAR*) optarg);
+      filename = wmalloc (sizeof (unsigned char) * strlen (optarg) + 1);
+      ustrcpy (filename, (unsigned char*) optarg);
       break;
     case 'm':
-      maxword = (R_UINT) atoi (optarg);
+      maxword = (unsigned int) atoi (optarg);
       if ((maxword < WORDLEN) || (maxword > MAXWORDLEN)) {
         fprintf (stderr, "The maximum word length must be between WORDLEN and MAXWORDLEN, inclusive. (%s, line %u)\n", __FILE__, __LINE__);
         exit (EXIT_FAILURE);
@@ -140,13 +124,13 @@ R_INT main (R_INT argc, R_CHAR **argv) {
       mode = MODE_DECODE_NONE;
       break;
     case 'p':
-      printsorted = R_TRUE;
+      printsorted = true;
       break;
     case 's':
-      dostem = R_TRUE;
+      dostem = true;
       break;
     case 'v':
-      verbose_level = R_TRUE;
+      verbose_level = true;
       break;
     default:
       fprintf (stderr, "Unexpected error:  getopt returned character code 0%d.\n", c);
@@ -176,7 +160,7 @@ R_INT main (R_INT argc, R_CHAR **argv) {
   file_info -> verbose_level = verbose_level;
   file_info -> mode = mode;
 
-  openFiles (filename, file_info, (mode == MODE_ENCODE ? "w" : "r"), R_FALSE);
+  openFiles (filename, file_info, (mode == MODE_ENCODE ? "w" : "r"), false);
 
   word_info = wmalloc (sizeof (WORD_STRUCT));
   nonword_info = wmalloc (sizeof (NONWORD_STRUCT));
@@ -185,8 +169,8 @@ R_INT main (R_INT argc, R_CHAR **argv) {
   if (mode == MODE_ENCODE) {
     fileEncode (file_info, stdin, word_info, nonword_info);
 
-    word_info -> map = wmalloc (word_info -> nwords * sizeof (R_UINT));
-    nonword_info -> map = wmalloc (nonword_info -> nnonwords * sizeof (R_UINT));
+    word_info -> map = wmalloc (word_info -> nwords * sizeof (unsigned int));
+    nonword_info -> map = wmalloc (nonword_info -> nnonwords * sizeof (unsigned int));
 
     /*  The 0-length symbols with an id of 0 always map back to 0.  */
     word_info -> map[0] = 0;
@@ -199,14 +183,14 @@ R_INT main (R_INT argc, R_CHAR **argv) {
     fcodeDictEncode (file_info, nonword_info -> root_fc, nonword_info -> dict_fc, nonword_info -> map, nonword_info -> printsorted, nonword_info -> nnonwords, ISNONWORD);
 
   /* Write some overall statistics */
-    if (file_info -> verbose_level == R_TRUE) {
-      if (docasefold == R_TRUE) {
+    if (file_info -> verbose_level == true) {
+      if (docasefold == true) {
         fprintf (stderr, "Words:  case-folded and ");
       }
       else {
         fprintf (stderr, "Words:  NOT case-folded and ");
       }
-      if (dostem == R_TRUE) {
+      if (dostem == true) {
         fprintf (stderr, "stemmed\n");
       }
       else {
@@ -223,21 +207,21 @@ R_INT main (R_INT argc, R_CHAR **argv) {
       fprintf (stderr, "\t\t%6u word tokens were longer than %u characters\n", word_info -> long_tokens, MAXWORDLEN);
       fprintf (stderr, "\t\t%6u word tokens broken because of tags\n", word_info -> enforce_tags);
       fprintf (stderr, "\t\t%6u word tokens were zero-length\n", word_info -> zerolength_sym);
-      fprintf (stderr, "\t%6.3f characters in length in message (average)\n", (R_FLOAT) word_info -> total_length / (R_FLOAT) word_info -> total_tokens);
-      fprintf (stderr, "\t%6.3f characters in length in lexicon (average)\n", (R_FLOAT) word_info -> total_words_len / (R_FLOAT) word_info -> nwords);
+      fprintf (stderr, "\t%6.3f characters in length in message (average)\n", (float) word_info -> total_length / (float) word_info -> total_tokens);
+      fprintf (stderr, "\t%6.3f characters in length in lexicon (average)\n", (float) word_info -> total_words_len / (float) word_info -> nwords);
       fprintf (stderr, "\t%6u unique word tokens (incl. 0-length word)\n", word_info -> nwords);
       fprintf (stderr, "\t%6.2f average comparisons for each identified word\n", (double)(word_info -> cmps)/(word_info -> total_tokens));
     }
 
-    if (file_info -> verbose_level == R_TRUE) {
+    if (file_info -> verbose_level == true) {
       fprintf (stderr, "Nonwords were literal-coded.\n");
       fprintf (stderr, "\t%6u nonword tokens found, of which\n", nonword_info -> total_tokens);
       fprintf (stderr, "\t\t%6u nonword tokens were longer than %u characters\n", nonword_info -> long_tokens, MAXWORDLEN);
       fprintf (stderr, "\t\t%6u nonword tokens broken because of tags\n", nonword_info -> enforce_tags);
       fprintf (stderr, "\t\t%6u nonword tokens were zero-length\n", nonword_info -> zerolength_sym);
       fprintf (stderr, "\t\t\t(may be 1 larger than expected,\n\t\t\tif file ended with a word)\n");
-      fprintf (stderr, "\t%6.3f characters in length in message (average)\n", (R_FLOAT) nonword_info -> total_length / (R_FLOAT) nonword_info -> total_tokens);
-      fprintf (stderr, "\t%6.3f characters in length in lexicon (average)\n", (R_FLOAT) nonword_info -> total_nonwords_len / (R_FLOAT) nonword_info -> nnonwords);
+      fprintf (stderr, "\t%6.3f characters in length in message (average)\n", (float) nonword_info -> total_length / (float) nonword_info -> total_tokens);
+      fprintf (stderr, "\t%6.3f characters in length in lexicon (average)\n", (float) nonword_info -> total_nonwords_len / (float) nonword_info -> nnonwords);
       fprintf (stderr, "\t%6u unique nonword tokens (incl. 0-length nonword)\n", nonword_info -> nnonwords);
       fprintf (stderr, "\t%6.2f average comparisons for each identified nonword\n", (double)(nonword_info -> cmps)/(nonword_info -> total_tokens));
     }

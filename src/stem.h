@@ -1,26 +1,3 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 #ifndef STEM_H
 #define STEM_H
 
@@ -62,13 +39,13 @@ enum S_STEM5b { NONE_5b = 0, DOUBLE_5b = 1 };
 
 
 #define CLASSIFYCHAR(STR,POS)                                      \
-((STR[POS] == (R_UCHAR) 'a' || STR[POS] == (R_UCHAR) 'e' ||        \
-STR[POS] == (R_UCHAR) 'i' || STR[POS] == (R_UCHAR) 'o' ||          \
-STR[POS] == (R_UCHAR) 'u' || ((POS != 0) && (STR[POS] ==           \
-(R_UCHAR) 'y') && (STR[POS - 1] != (R_UCHAR) 'a') && (STR[POS - 1] \
-!= (R_UCHAR) 'e') && (STR[POS - 1] != (R_UCHAR) 'i') &&            \
-(STR[POS - 1] != (R_UCHAR) 'o') && (STR[POS - 1] !=                \
-(R_UCHAR) 'u'))) ? VOWEL : CONSONANT)
+((STR[POS] == (unsigned char) 'a' || STR[POS] == (unsigned char) 'e' ||        \
+STR[POS] == (unsigned char) 'i' || STR[POS] == (unsigned char) 'o' ||          \
+STR[POS] == (unsigned char) 'u' || ((POS != 0) && (STR[POS] ==           \
+(unsigned char) 'y') && (STR[POS - 1] != (unsigned char) 'a') && (STR[POS - 1] \
+!= (unsigned char) 'e') && (STR[POS - 1] != (unsigned char) 'i') &&            \
+(STR[POS - 1] != (unsigned char) 'o') && (STR[POS - 1] !=                \
+(unsigned char) 'u'))) ? VOWEL : CONSONANT)
 
 
 /*  Check if STR, of length LEN, is longer than SUFLEN, the length of the 
@@ -76,14 +53,14 @@ STR[POS] == (R_UCHAR) 'u' || ((POS != 0) && (STR[POS] ==           \
 **  occurs, then decrement the length of the string by CUTLEN (where 
 **  CUTLEN <= SUFLEN) and set FLAG.  Use the M array to check MVAL, if 
 **  necessary.  The datatypes are:
-**    STR (R_UCHAR)
-**    LEN (R_UINT)
-**    SUF (R_UCHAR)
-**    SUFLEN (R_UINT)
-**    CUTLEN (R_UINT)
+**    STR (unsigned char)
+**    LEN (unsigned int)
+**    SUF (unsigned char)
+**    SUFLEN (unsigned int)
+**    CUTLEN (unsigned int)
 **    FLAG (some enumerated type)
-**    M (R_UINT*)
-**    MVAL (R_UINT)
+**    M (unsigned int*)
+**    MVAL (unsigned int)
 ** 
 **  The M array needs to be updated after any change.   CHOP does the 
 **  same, but without checking M.  MOD_CHOP_M is used for cases when
@@ -93,9 +70,9 @@ STR[POS] == (R_UCHAR) 'u' || ((POS != 0) && (STR[POS] ==           \
 **  return when complete, except for the ones which end in NORETURN.
 */
 #define CHOP_M(STR,LEN,SUF,SUFLEN,CUTLEN,FLAG,M,MVAL)        \
-if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
+if ((match_result == false) && ((LEN) > SUFLEN)) {         \
   if (memcmp (STR+(LEN)-SUFLEN, SUF, SUFLEN) == 0) {         \
-    match_result = R_TRUE;                                   \
+    match_result = true;                                   \
     if (M[(LEN)-SUFLEN-1] > MVAL) {                          \
       (LEN) -= CUTLEN;                                       \
       result = FLAG;                                         \
@@ -107,9 +84,9 @@ if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
 
 
 #define CHOP_M_NORETURN(STR,LEN,SUF,SUFLEN,CUTLEN,FLAG,M,MVAL)\
-if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
+if ((match_result == false) && ((LEN) > SUFLEN)) {         \
   if (memcmp (STR+(LEN)-SUFLEN, SUF, SUFLEN) == 0) {         \
-    match_result = R_TRUE;                                   \
+    match_result = true;                                   \
     if (M[(LEN)-SUFLEN-1] > MVAL) {                          \
       (LEN) -= CUTLEN;                                       \
       result = FLAG;                                         \
@@ -120,9 +97,9 @@ if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
 
 
 #define MOD_CHOP_M(STR,LEN,SUF,SUFLEN,CUTLEN,NEWSUF,NEWSUFLEN,FLAG,M,MVAL)     \
-if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
+if ((match_result == false) && ((LEN) > SUFLEN)) {         \
   if (memcmp (STR+(LEN)-SUFLEN, SUF, SUFLEN) == 0) {         \
-    match_result = R_TRUE;                                   \
+    match_result = true;                                   \
     if (M[(LEN)-SUFLEN-1] > MVAL) {                          \
       (LEN) -= CUTLEN;                                       \
       memcpy (STR+(LEN),NEWSUF,NEWSUFLEN);                   \
@@ -136,9 +113,9 @@ if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
 
 
 #define CHOP(STR,LEN,SUF,SUFLEN,CUTLEN,FLAG,M)               \
-if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
+if ((match_result == false) && ((LEN) > SUFLEN)) {         \
   if (memcmp (STR+(LEN)-SUFLEN, SUF, SUFLEN) == 0) {         \
-    match_result = R_TRUE;                                   \
+    match_result = true;                                   \
     (LEN) -= CUTLEN;                                         \
     result = FLAG;                                           \
     M = findM (STR, LEN, M);                                 \
@@ -152,11 +129,11 @@ if ((match_result == R_FALSE) && ((LEN) > SUFLEN)) {         \
 **  removed from STR.  If CUTLEN = 0, then SUF is appended on to
 **  STR.  All of this is done only if result is equal to FLAG.
 **  The datatypes are:
-**    STR (R_UCHAR)
-**    LEN (R_UINT)
-**    SUF (R_UCHAR)
-**    SUFLEN (R_UINT)
-**    CUTLEN (R_UINT)
+**    STR (unsigned char)
+**    LEN (unsigned int)
+**    SUF (unsigned char)
+**    SUFLEN (unsigned int)
+**    CUTLEN (unsigned int)
 **    FLAG (some enumerated type)
 */
 #define UNCHOP(STR,LEN,SUF,SUFLEN,CUTLEN,FLAG)               \
@@ -167,8 +144,8 @@ if (result == FLAG) {                                        \
   return;                                                    \
 }
 
-R_UINT stem (R_UCHAR *wrd, R_UINT *wrd_len, R_UINT *m);
-R_UINT unstem (R_UCHAR *wrd, R_UINT len, R_UINT modifier);
+unsigned int stem (unsigned char *wrd, unsigned int *wrd_len, unsigned int *m);
+unsigned int unstem (unsigned char *wrd, unsigned int len, unsigned int modifier);
 
 
 #endif

@@ -1,26 +1,3 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 /* Counts word frequencies.
    Uses a splay tree to record words. Frequencies are printed at end of input.
 
@@ -28,7 +5,7 @@
    Written by Alistair Moffat, March 1990.
 
    Updated by Raymond Wan [2000/07/19]
-     - Function "isword" added.  
+     - Function "isword" added.
      - Function "getword" modified.
      - A word is any alphanumeric string as well as '<', '/', and '>'.
          - The '/' character is only part of a word if it is preceeded
@@ -50,6 +27,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "common-def.h"
 #include "wmalloc.h"
@@ -63,7 +41,7 @@
 #include "prepair.h"
 
 /*  Initialise word and nonword data structures  */
-void initPrepair (WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info, R_UINT maxword, R_BOOLEAN docasefold, R_BOOLEAN dostem, R_BOOLEAN printsorted) {
+void initPrepair (WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info, unsigned int maxword, bool docasefold, bool dostem, bool printsorted) {
   /*  Word data structure  */
   word_info -> maxword = maxword;
   word_info -> docasefold = docasefold;
@@ -95,7 +73,7 @@ void initPrepair (WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info, R_UINT m
   nonword_info -> nnonwords_prims = 0;
   nonword_info -> cmps = 0;
   nonword_info -> map = NULL;
- 
+
   nonword_info -> total_tokens = 0;
   nonword_info -> total_length = 0;
   nonword_info -> long_tokens = 0;
@@ -112,7 +90,7 @@ void initPrepair (WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info, R_UINT m
 }
 
 
-void writeFiles (FILE_STRUCT *file_info, R_UINT wrd_key, R_UINT casefold_result, R_UINT stem_result, R_UINT nonwrd_key) {
+void writeFiles (FILE_STRUCT *file_info, unsigned int wrd_key, unsigned int casefold_result, unsigned int stem_result, unsigned int nonwrd_key) {
 
   *file_info -> ws_p = wrd_key;
   *file_info -> cfm_p = casefold_result;
@@ -126,16 +104,16 @@ void writeFiles (FILE_STRUCT *file_info, R_UINT wrd_key, R_UINT casefold_result,
 
   /*  If one buffer is at the end, then all are  */
   if (file_info -> ws_p == file_info -> ws_end) {
-    fwrite (file_info -> ws_buf, sizeof (R_UINT), (file_info -> ws_p) - (file_info -> ws_buf), file_info -> ws_fp);
+    fwrite (file_info -> ws_buf, sizeof (unsigned int), (file_info -> ws_p) - (file_info -> ws_buf), file_info -> ws_fp);
     file_info -> ws_p = file_info -> ws_buf;
 
-    fwrite (file_info -> cfm_buf, sizeof (R_UINT), (file_info -> cfm_p) - (file_info -> cfm_buf), file_info -> cfm_fp);
+    fwrite (file_info -> cfm_buf, sizeof (unsigned int), (file_info -> cfm_p) - (file_info -> cfm_buf), file_info -> cfm_fp);
     file_info -> cfm_p = file_info -> cfm_buf;
 
-    fwrite (file_info -> sm_buf, sizeof (R_UINT), (file_info -> sm_p) - (file_info -> sm_buf), file_info -> sm_fp);
+    fwrite (file_info -> sm_buf, sizeof (unsigned int), (file_info -> sm_p) - (file_info -> sm_buf), file_info -> sm_fp);
     file_info -> sm_p = file_info -> sm_buf;
 
-    fwrite (file_info -> nws_buf, sizeof (R_UINT), (file_info -> nws_p) - (file_info -> nws_buf), file_info -> nws_fp);
+    fwrite (file_info -> nws_buf, sizeof (unsigned int), (file_info -> nws_p) - (file_info -> nws_buf), file_info -> nws_fp);
     file_info -> nws_p = file_info -> nws_buf;
   }
 
@@ -143,33 +121,33 @@ void writeFiles (FILE_STRUCT *file_info, R_UINT wrd_key, R_UINT casefold_result,
 }
 
 
-R_UINT readFiles (FILE_STRUCT *file_info, R_UINT *wrd_key, R_UINT *casefold_result, R_UINT *stem_result, R_UINT *nonwrd_key) {
-  R_UINT intsread = 0;
+unsigned int readFiles (FILE_STRUCT *file_info, unsigned int *wrd_key, unsigned int *casefold_result, unsigned int *stem_result, unsigned int *nonwrd_key) {
+  unsigned int intsread = 0;
 
   if (file_info -> ws_p == file_info -> ws_end) {
     if (feof (file_info -> ws_fp)) {
       return (0);
     }
 
-    intsread = fread (file_info -> ws_buf, sizeof (R_UINT), OUTBUFMAX, file_info -> ws_fp);
+    intsread = fread (file_info -> ws_buf, sizeof (unsigned int), OUTBUFMAX, file_info -> ws_fp);
     file_info -> ws_end = file_info -> ws_buf + intsread;
     file_info -> ws_p = file_info -> ws_buf;
 
-    if (intsread != fread (file_info -> cfm_buf, sizeof (R_UINT), OUTBUFMAX, file_info -> cfm_fp)) {
+    if (intsread != fread (file_info -> cfm_buf, sizeof (unsigned int), OUTBUFMAX, file_info -> cfm_fp)) {
       fprintf (stderr, "Case-folding modifier file size mismatch (%s, line %u).", __FILE__, __LINE__);
       exit (EXIT_FAILURE);
     }
     file_info -> cfm_end = file_info -> cfm_buf + intsread;
     file_info -> cfm_p = file_info -> cfm_buf;
 
-    if (intsread != fread (file_info -> sm_buf, sizeof (R_UINT), OUTBUFMAX, file_info -> sm_fp)) {
+    if (intsread != fread (file_info -> sm_buf, sizeof (unsigned int), OUTBUFMAX, file_info -> sm_fp)) {
       fprintf (stderr, "Stemming modifier file size mismatch (%s, line %u).", __FILE__, __LINE__);
       exit (EXIT_FAILURE);
     }
     file_info -> sm_end = file_info -> sm_buf + intsread;
     file_info -> sm_p = file_info -> sm_buf;
 
-    if (intsread != fread (file_info -> nws_buf, sizeof (R_UINT), OUTBUFMAX, file_info -> nws_fp)) {
+    if (intsread != fread (file_info -> nws_buf, sizeof (unsigned int), OUTBUFMAX, file_info -> nws_fp)) {
       fprintf (stderr, "Non-word sequence file size mismatch (%s, line %u).", __FILE__, __LINE__);
       exit (EXIT_FAILURE);
     }
@@ -196,62 +174,62 @@ R_UINT readFiles (FILE_STRUCT *file_info, R_UINT *wrd_key, R_UINT *casefold_resu
 }
 
 
-void openFiles (R_UCHAR *filename, FILE_STRUCT *file_info, const R_CHAR *filemode, R_BOOLEAN dicts_only) {
-  R_UINT len = ustrlen (filename);
+void openFiles (unsigned char *filename, FILE_STRUCT *file_info, const char *filemode, bool dicts_only) {
+  unsigned int len = ustrlen (filename);
 
-  file_info -> wd_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 3));
+  file_info -> wd_name = wmalloc (sizeof (unsigned char) * (len + 1 + 3));
   ustrcpy (file_info -> wd_name, filename);
-  ustrncat (file_info -> wd_name, ".wd", 3);
+  ustrncat_const (file_info -> wd_name, ".wd", 3);
   file_info -> wd_name[len + 3] = '\0';
   FOPEN (file_info -> wd_name, file_info -> wd_fp, filemode);
-  file_info -> wd_buf = wmalloc (sizeof (R_UCHAR) * OUTBUFMAX);
+  file_info -> wd_buf = wmalloc (sizeof (unsigned char) * OUTBUFMAX);
   /*  Mark the end of the buffer (MAXWORDLEN + MAXWORDLEN_HEADER + 1)
   **  from the actual end.  */
   file_info -> wd_end = file_info -> wd_buf + OUTBUFMAX - (MAXWORDLEN + MAXWORDLEN_HEADER + 1);
 
-  if (dicts_only == R_FALSE) {
-    file_info -> ws_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 3));
+  if (dicts_only == false) {
+    file_info -> ws_name = wmalloc (sizeof (unsigned char) * (len + 1 + 3));
     ustrcpy (file_info -> ws_name, filename);
-    ustrncat (file_info -> ws_name, ".ws", 3);
+    ustrncat_const (file_info -> ws_name, ".ws", 3);
     file_info -> ws_name[len + 3] = '\0';
     FOPEN (file_info -> ws_name, file_info -> ws_fp, filemode);
-    file_info -> ws_buf = wmalloc (sizeof (R_UINT) * OUTBUFMAX);
+    file_info -> ws_buf = wmalloc (sizeof (unsigned int) * OUTBUFMAX);
     file_info -> ws_end = file_info -> ws_buf + OUTBUFMAX;
   }
 
-  file_info -> nwd_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 4));
+  file_info -> nwd_name = wmalloc (sizeof (unsigned char) * (len + 1 + 4));
   ustrcpy (file_info -> nwd_name, filename);
-  ustrncat (file_info -> nwd_name, ".nwd", 4);
+  ustrncat_const (file_info -> nwd_name, ".nwd", 4);
   file_info -> nwd_name[len + 4] = '\0';
   FOPEN (file_info -> nwd_name, file_info -> nwd_fp, filemode);
-  file_info -> nwd_buf = wmalloc (sizeof (R_UCHAR) * OUTBUFMAX);
+  file_info -> nwd_buf = wmalloc (sizeof (unsigned char) * OUTBUFMAX);
   /*  Mark the end of the buffer (MAXWORDLEN + MAXWORDLEN_HEADER + 1)
   **  from the actual end.  */
   file_info -> nwd_end = file_info -> nwd_buf + OUTBUFMAX - (MAXWORDLEN + MAXWORDLEN_HEADER + 1);
 
-  if (dicts_only == R_FALSE) {
-    file_info -> nws_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 4));
+  if (dicts_only == false) {
+    file_info -> nws_name = wmalloc (sizeof (unsigned char) * (len + 1 + 4));
     ustrcpy (file_info -> nws_name, filename);
-    ustrncat (file_info -> nws_name, ".nws", 4);
+    ustrncat_const (file_info -> nws_name, ".nws", 4);
     file_info -> nws_name[len + 4] = '\0';
     FOPEN (file_info -> nws_name, file_info -> nws_fp, filemode);
-    file_info -> nws_buf = wmalloc (sizeof (R_UINT) * OUTBUFMAX);
+    file_info -> nws_buf = wmalloc (sizeof (unsigned int) * OUTBUFMAX);
     file_info -> nws_end = file_info -> nws_buf + OUTBUFMAX;
 
-    file_info -> cfm_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 4));
+    file_info -> cfm_name = wmalloc (sizeof (unsigned char) * (len + 1 + 4));
     ustrcpy (file_info -> cfm_name, filename);
-    ustrncat (file_info -> cfm_name, ".cfm", 4);
+    ustrncat_const (file_info -> cfm_name, ".cfm", 4);
     file_info -> cfm_name[len + 4] = '\0';
     FOPEN (file_info -> cfm_name, file_info -> cfm_fp, filemode);
-    file_info -> cfm_buf = wmalloc (sizeof (R_UINT) * OUTBUFMAX);
+    file_info -> cfm_buf = wmalloc (sizeof (unsigned int) * OUTBUFMAX);
     file_info -> cfm_end = file_info -> cfm_buf + OUTBUFMAX;
 
-    file_info -> sm_name = wmalloc (sizeof (R_UCHAR) * (len + 1 + 3));
+    file_info -> sm_name = wmalloc (sizeof (unsigned char) * (len + 1 + 3));
     ustrcpy (file_info -> sm_name, filename);
-    ustrncat (file_info -> sm_name, ".sm", 3);
+    ustrncat_const (file_info -> sm_name, ".sm", 3);
     file_info -> sm_name[len + 3] = '\0';
     FOPEN (file_info -> sm_name, file_info -> sm_fp, filemode);
-    file_info -> sm_buf = wmalloc (sizeof (R_UINT) * OUTBUFMAX);
+    file_info -> sm_buf = wmalloc (sizeof (unsigned int) * OUTBUFMAX);
     file_info -> sm_end = file_info -> sm_buf + OUTBUFMAX;
   }
 
@@ -277,53 +255,55 @@ void openFiles (R_UCHAR *filename, FILE_STRUCT *file_info, const R_CHAR *filemod
 
 
 /*  Re-encode the sequence file.  */
-void seqReEncode (FILE_STRUCT *file_info, R_UINT *map, enum WORDTYPE type) {
-  R_CHAR *temp_mv;
-  R_UCHAR *temp_file;
+void seqReEncode (FILE_STRUCT *file_info, unsigned int *map, enum WORDTYPE type) {
+  char *temp_mv;
+  unsigned char *temp_file;
   FILE *temp_fp;
-  R_UINT buffsize;
-  R_UINT i;
+  unsigned int buffsize;
+  unsigned int i;
 
-  R_UCHAR *name;
+  unsigned char *name;
   FILE *fp;
-  R_UINT *buf = NULL;
-  R_UINT *p = NULL;
+  unsigned int *buf = NULL;
+  unsigned int *p = NULL;
 
-  temp_file = wmalloc (sizeof (R_UCHAR) * 9);
+  int result = 0;
+  
+  temp_file = wmalloc (sizeof (unsigned char) * 9);
   map[0] = 0;
   if (type == ISWORD) {
     name = file_info -> ws_name;
     fp = file_info -> ws_fp;
     buf = file_info -> ws_buf;
-    ustrcpy (temp_file, "temp.ws");
+    ustrcpy_const (temp_file, "temp.ws");
     temp_file[7] = '\0';
   }
   else {
     name = file_info -> nws_name;
     fp = file_info -> nws_fp;
     buf = file_info -> nws_buf;
-    ustrcpy (temp_file, "temp.nws");
+    ustrcpy_const (temp_file, "temp.nws");
     temp_file[8] = '\0';
   }
 
   temp_mv = wmalloc (ustrlen (name) + ustrlen (temp_file) + 5);
   sprintf (temp_mv, "mv %s %s", name, temp_file);
-  system (temp_mv);
+  result = system (temp_mv);
   FOPEN (temp_file, temp_fp, "r");
   FOPEN (name, fp, "w");
   do {
-    buffsize = fread (buf, sizeof (R_UINT), OUTBUFMAX, temp_fp);
+    buffsize = fread (buf, sizeof (unsigned int), OUTBUFMAX, temp_fp);
     p = buf;
 #ifdef FLAG_WORDS
     for (i = 0; i < buffsize; i++) {
       if ((*p & NO_TOP_BIT) == *p) {
-	/*  top bit not set  */
-	*p = map[*p];
+  /*  top bit not set  */
+  *p = map[*p];
       }
       else {
-	/*  top bit is set  */
-	*p = map[*p & NO_TOP_BIT];
-	*p = *p | TOP_BIT;
+  /*  top bit is set  */
+  *p = map[*p & NO_TOP_BIT];
+  *p = *p | TOP_BIT;
       }
       p++;
     }
@@ -333,12 +313,12 @@ void seqReEncode (FILE_STRUCT *file_info, R_UINT *map, enum WORDTYPE type) {
       p++;
     }
 #endif
-    fwrite (buf, sizeof (R_UINT), buffsize, fp);
+    fwrite (buf, sizeof (unsigned int), buffsize, fp);
   } while (!feof (temp_fp));
   fclose (temp_fp);
 
   sprintf (temp_mv, "rm %s", temp_file);
-  system (temp_mv);
+  result = system (temp_mv);
 
   wfree (temp_mv);
   fclose (fp);
@@ -347,17 +327,17 @@ void seqReEncode (FILE_STRUCT *file_info, R_UINT *map, enum WORDTYPE type) {
 }
 
 
-void closeFilesEncode (FILE_STRUCT *file_info, R_UINT *word_map, R_UINT *nonword_map) {
+void closeFilesEncode (FILE_STRUCT *file_info, unsigned int *word_map, unsigned int *nonword_map) {
 
   if (file_info -> wd_p != file_info -> wd_buf) {
-    fwrite (file_info -> wd_buf, sizeof (R_UCHAR), (file_info -> wd_p) - (file_info -> wd_buf), file_info -> wd_fp);
+    fwrite (file_info -> wd_buf, sizeof (unsigned char), (file_info -> wd_p) - (file_info -> wd_buf), file_info -> wd_fp);
   }
   wfree (file_info -> wd_buf);
   fclose (file_info -> wd_fp);
   wfree (file_info -> wd_name);
 
   if (file_info -> ws_p != file_info -> ws_buf) {
-    fwrite (file_info -> ws_buf, sizeof (R_UINT), (file_info -> ws_p) - (file_info -> ws_buf), file_info -> ws_fp);
+    fwrite (file_info -> ws_buf, sizeof (unsigned int), (file_info -> ws_p) - (file_info -> ws_buf), file_info -> ws_fp);
   }
   fclose (file_info -> ws_fp);
   seqReEncode (file_info, word_map, ISWORD);
@@ -365,14 +345,14 @@ void closeFilesEncode (FILE_STRUCT *file_info, R_UINT *word_map, R_UINT *nonword
   wfree (file_info -> ws_buf);
 
   if (file_info -> nwd_p != file_info -> nwd_buf) {
-    fwrite (file_info -> nwd_buf, sizeof (R_UCHAR), (file_info -> nwd_p) - (file_info -> nwd_buf), file_info -> nwd_fp);
+    fwrite (file_info -> nwd_buf, sizeof (unsigned char), (file_info -> nwd_p) - (file_info -> nwd_buf), file_info -> nwd_fp);
   }
   wfree (file_info -> nwd_buf);
   fclose (file_info -> nwd_fp);
   wfree (file_info -> nwd_name);
 
   if (file_info -> nws_p != file_info -> nws_buf) {
-    fwrite (file_info -> nws_buf, sizeof (R_UINT), (file_info -> nws_p) - (file_info -> nws_buf), file_info -> nws_fp);
+    fwrite (file_info -> nws_buf, sizeof (unsigned int), (file_info -> nws_p) - (file_info -> nws_buf), file_info -> nws_fp);
   }
   fclose (file_info -> nws_fp);
   seqReEncode (file_info, nonword_map, ISNONWORD);
@@ -380,14 +360,14 @@ void closeFilesEncode (FILE_STRUCT *file_info, R_UINT *word_map, R_UINT *nonword
   wfree (file_info -> nws_buf);
 
   if (file_info -> cfm_p != file_info -> cfm_buf) {
-    fwrite (file_info -> cfm_buf, sizeof (R_UINT), (file_info -> cfm_p) - (file_info -> cfm_buf), file_info -> cfm_fp);
+    fwrite (file_info -> cfm_buf, sizeof (unsigned int), (file_info -> cfm_p) - (file_info -> cfm_buf), file_info -> cfm_fp);
   }
   fclose (file_info -> cfm_fp);
   wfree (file_info -> cfm_name);
   wfree (file_info -> cfm_buf);
 
   if (file_info -> sm_p != file_info -> sm_buf) {
-    fwrite (file_info -> sm_buf, sizeof (R_UINT), (file_info -> sm_p) - (file_info -> sm_buf), file_info -> sm_fp);
+    fwrite (file_info -> sm_buf, sizeof (unsigned int), (file_info -> sm_p) - (file_info -> sm_buf), file_info -> sm_fp);
   }
   fclose (file_info -> sm_fp);
   wfree (file_info -> sm_name);
@@ -426,34 +406,34 @@ void closeFilesDecode (FILE_STRUCT *file_info, WORD_STRUCT *word_info, NONWORD_S
 }
 
 
-/* 
+/*
 **  Process the file
 */
 void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info) {
-  R_UCHAR *wrd_buff;
-  R_UINT wrd_buff_len = 0;
+  unsigned char *wrd_buff;
+  unsigned int wrd_buff_len = 0;
                     /*  The original word buffer length, before stemming  */
-  R_UCHAR *nonwrd_buff;
-  R_UINT nonwrd_buff_len = 0;
-  R_UINT wrd_key = 0;
-  R_UINT nonwrd_key = 0;
-  R_UINT casefold_result = 0;
-  R_UINT stem_result = 0;
-  R_UINT *m = NULL;
-  R_BOOLEAN notdone = R_FALSE;
+  unsigned char *nonwrd_buff;
+  unsigned int nonwrd_buff_len = 0;
+  unsigned int wrd_key = 0;
+  unsigned int nonwrd_key = 0;
+  unsigned int casefold_result = 0;
+  unsigned int stem_result = 0;
+  unsigned int *m = NULL;
+  bool notdone = false;
 
-  R_UINT wrd_array[MAXPRIMS];
-  R_UINT nonwrd_array[MAXPRIMS];
-  R_UINT i = 0;
+  unsigned int wrd_array[MAXPRIMS];
+  unsigned int nonwrd_array[MAXPRIMS];
+  unsigned int i = 0;
 
-  R_UCHAR *src_buff = NULL;
-  R_UCHAR *src_p = NULL;
-  R_UCHAR *src_end = NULL;
-  R_UINT num_read = 0;
-  R_UINT space_area = 0;
-  R_UINT text_area = 0;
+  unsigned char *src_buff = NULL;
+  unsigned char *src_p = NULL;
+  unsigned char *src_end = NULL;
+  unsigned int num_read = 0;
+  unsigned int space_area = 0;
+  unsigned int text_area = 0;
 #ifdef FLAG_WORDS
-  R_BOOLEAN end_phrase = R_FALSE;
+  bool end_phrase = false;
 #endif
 
   for (i = 0; i < MAXPRIMS; i++) {
@@ -461,17 +441,17 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
     nonwrd_array[i] = 0;
   }
 
-  m = wmalloc (sizeof (R_UINT) * word_info -> maxword);
-  wrd_buff = wmalloc (sizeof (R_UCHAR) * word_info -> maxword);
-  nonwrd_buff = wmalloc (sizeof (R_UCHAR) * word_info -> maxword);
-  src_buff = wmalloc (sizeof (R_UCHAR) * (INIT_BUFF_SIZE + 1));
+  m = wmalloc (sizeof (unsigned int) * word_info -> maxword);
+  wrd_buff = wmalloc (sizeof (unsigned char) * word_info -> maxword);
+  nonwrd_buff = wmalloc (sizeof (unsigned char) * word_info -> maxword);
+  src_buff = wmalloc (sizeof (unsigned char) * (INIT_BUFF_SIZE + 1));
 
-  num_read = fread (src_buff, sizeof (R_UCHAR), INIT_BUFF_SIZE, fp);
+  num_read = fread (src_buff, sizeof (unsigned char), INIT_BUFF_SIZE, fp);
   src_p = src_buff;
   src_end = src_buff + num_read;
 
   do {
-    if (notdone == R_FALSE) {
+    if (notdone == false) {
       wrd_buff_len = getWord (&src_p, src_end, wrd_buff, word_info -> maxword, &notdone, &word_info -> long_tokens, &word_info -> enforce_tags);
       if (word_info -> docasefold) {
         casefold_result = casefold (wrd_buff, wrd_buff_len);
@@ -486,20 +466,20 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
       wrd_key = EMPTY_FCODE;
       casefold_result = 0;
       stem_result = 0;
-      notdone = R_FALSE;
+      notdone = false;
     }
     (word_info -> total_tokens)++;
 
-    if ((notdone == R_FALSE) && (src_p != src_end)) {
+    if ((notdone == false) && (src_p != src_end)) {
       nonwrd_buff_len = getNonWord (&src_p, src_end, nonwrd_buff, nonword_info -> maxnonword, &notdone, &nonword_info -> long_tokens);
 #ifdef FLAG_WORDS
-      if ((nonwrd_buff[0] == '.') || (nonwrd_buff[0] == ',') || 
-          (nonwrd_buff[0] == ';') || (nonwrd_buff[0] == '?') || 
+      if ((nonwrd_buff[0] == '.') || (nonwrd_buff[0] == ',') ||
+          (nonwrd_buff[0] == ';') || (nonwrd_buff[0] == '?') ||
           (nonwrd_buff[0] == '!') || (nonwrd_buff[0] == ':') ||
-	  ((nonwrd_buff_len >= 4) && (nonwrd_buff[1] == '-') &&
+    ((nonwrd_buff_len >= 4) && (nonwrd_buff[1] == '-') &&
            (nonwrd_buff[2] == '-') && (isspace (nonwrd_buff[0]))
-	   && (isspace (nonwrd_buff[3])))) {
-	end_phrase = R_TRUE;
+     && (isspace (nonwrd_buff[3])))) {
+  end_phrase = true;
       }
 #endif
       (nonword_info -> total_length) += nonwrd_buff_len;
@@ -507,7 +487,7 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
     }
     else {
       nonwrd_key = EMPTY_FCODE;
-      notdone = R_FALSE;
+      notdone = false;
     }
     (nonword_info -> total_tokens)++;
 
@@ -524,9 +504,9 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
     }
 #endif
 #ifdef FLAG_WORDS
-    if (end_phrase == R_TRUE) {
+    if (end_phrase == true) {
       wrd_key = wrd_key | TOP_BIT;
-      end_phrase = R_FALSE;
+      end_phrase = false;
     }
 #endif
 
@@ -545,7 +525,7 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
     text_area = src_end - src_p;
     if ((text_area < MIN_BUFF_SIZE) && (!feof (fp))) {
       memcpy (src_buff, src_p, text_area);
-      num_read = fread (src_buff + text_area, sizeof (R_UCHAR), space_area, fp);
+      num_read = fread (src_buff + text_area, sizeof (unsigned char), space_area, fp);
       src_p = src_buff;
       src_end = src_buff + text_area + num_read;
     }
@@ -560,7 +540,7 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
   }
   word_info -> nwords_prims = nprims;
 
-  nprims = 1;  
+  nprims = 1;
   for (i = 0; i < MAXPRIMS; i++) {
     if (nonwrd_array[i] != 0) {
       nprims++;
@@ -578,27 +558,27 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
 
 
 void fileDecode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWORD_STRUCT *nonword_info) {
-  R_UCHAR *wrd;
-  R_UINT wrd_len;
-  R_UINT wrd_key;
-  R_UINT casefold_mod;
-  R_UINT stem_mod;
-  R_UCHAR *nonwrd;
-  R_UINT nonwrd_len;
-  R_UINT nonwrd_key;
-  R_UCHAR *wrd_pos;
-  R_UCHAR *nonwrd_pos;
-  R_UCHAR *space;
-  R_UINT space_len = 0;
-  R_UCHAR *newline;
-  R_UINT newline_len = 0;
+  unsigned char *wrd;
+  unsigned int wrd_len;
+  unsigned int wrd_key;
+  unsigned int casefold_mod;
+  unsigned int stem_mod;
+  unsigned char *nonwrd;
+  unsigned int nonwrd_len;
+  unsigned int nonwrd_key;
+  unsigned char *wrd_pos;
+  unsigned char *nonwrd_pos;
+  unsigned char *space;
+  unsigned int space_len = 0;
+  unsigned char *newline;
+  unsigned int newline_len = 0;
 
   wrd_pos = NULL;
   nonwrd_pos = NULL;
-  wrd = wmalloc (sizeof (R_UCHAR) * word_info -> maxword);
-  nonwrd = wmalloc (sizeof (R_UCHAR) * nonword_info -> maxnonword);
-  space = wmalloc (sizeof (R_UCHAR) * nonword_info -> maxnonword);
-  newline = wmalloc ((sizeof (R_UCHAR) * nonword_info -> maxnonword));
+  wrd = wmalloc (sizeof (unsigned char) * word_info -> maxword);
+  nonwrd = wmalloc (sizeof (unsigned char) * nonword_info -> maxnonword);
+  space = wmalloc (sizeof (unsigned char) * nonword_info -> maxnonword);
+  newline = wmalloc ((sizeof (unsigned char) * nonword_info -> maxnonword));
 
   if (file_info -> mode == MODE_DECODE) {
     while (readFiles (file_info, &wrd_key, &casefold_mod, &stem_mod, &nonwrd_key) != 0) {
@@ -627,15 +607,15 @@ void fileDecode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
         LOOKUPFCODE (word_info -> dict_fc, wrd_key, wrd, wrd_len);
         uprintf (fp, wrd, wrd_len);
         /*  Add a newline after every closing tag.  */
-	if ((wrd_len > 2) && (wrd[0] == '<') && (wrd[1] == '/')) {
+  if ((wrd_len > 2) && (wrd[0] == '<') && (wrd[1] == '/')) {
           uprintf (fp, newline, newline_len);
-	}
-	else {
+  }
+  else {
           uprintf (fp, space, space_len);
-	}
+  }
       }
       if (nonwrd_key != 0) {
-	/*  Do nothing  */
+  /*  Do nothing  */
       }
     }
   }
@@ -652,18 +632,18 @@ void fileDecode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
       }
       if (nonwrd_key != 0) {
         LOOKUPFCODE (nonword_info -> dict_fc, nonwrd_key, nonwrd, nonwrd_len);
-	/*  If the first non-word is a newline, add a newline; space
-	**  otherwise.  */
+  /*  If the first non-word is a newline, add a newline; space
+  **  otherwise.  */
         if (nonwrd[0] == '\n') {
           uprintf (fp, newline, newline_len);
-	}
-	else {
-	  uprintf (fp, space, space_len);
-	}
+  }
+  else {
+    uprintf (fp, space, space_len);
+  }
       }
       else {
-	/*  Ensure a space is added after every word token, at least.  */
-	uprintf (fp, space, space_len);
+  /*  Ensure a space is added after every word token, at least.  */
+  uprintf (fp, space, space_len);
       }
     }
   }

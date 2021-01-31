@@ -1,46 +1,23 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 /*
    Implementation of the Porter stemming algorithm.
    Written by Raymond Wan, 2002/10/30
- 
+
    Original algorithm described in:
- 
+
      Porter, M. F., 1980, An algorithm for suffix stripping,
        Program, 14(3) : 130-137.  Reprinted in Sparck Jones, Karen,
        and Peter Willet, 1997, Readings in Information Retrieval,
        San Francisco: Morgan Kaufmann, ISBN 1-55860-454-4.
- 
+
      The official Porter Stemming Algorithm home page:
        http://www.tartarus.org/~martin/PorterStemmer/index.html
- 
-    This implementation of the Porter stemming algorithm is 
+
+    This implementation of the Porter stemming algorithm is
     reversible.  Changes to a word result in a 23-bit modifier
     which can be used to losslessly reproduce the original word.
-    Words can be up to 256 characters in length, but are assumed to 
+    Words can be up to 256 characters in length, but are assumed to
     have been case folded.
- 
+
     The 23-bit modifier is divided as follows, starting from the most
     significant bit:
       step 1a:  3 bits
@@ -52,23 +29,23 @@
       step 4:   5 bits
       step 5a:  1 bit
       step 5b:  1 bit
- 
+
     Note that the bits do not indicate which rule was performed, but
     only what to do to recreate the word.  Therefore, several rules
     in the original paper may be undone using the same method.
-    Of the 5 steps mentioned in the original paper, the following 
+    Of the 5 steps mentioned in the original paper, the following
     have not been done:
       1)  In Step 5a, according to the FAQ at the above URL, only one
           of the rules would be performed because S1 (e) matches to
           both rules.
- 
+
     From the Porter Stemming Algorithm home page, the following
     additions have been made:
       1)  New rule for Step 2:  (m > 0) logi -> log
       2)  Updated rule for Step 2:  (m > 0) abli -> able replaced
           by (m > 0) bli -> ble.
       3)  Words of 1 or 2 characters in length are not processed.
- 
+
     #define the symbol BRITISH_SPELL at compile time in order
     to accept only British spelling of -ize (-ise) words.
 
@@ -87,40 +64,41 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "common-def.h"
 #include "ustring.h"
 #include "stem.h"
 
-static R_UINT *findM (R_UCHAR *wrd, R_UINT len, R_UINT *m_array);
+static unsigned int *findM (unsigned char *wrd, unsigned int len, unsigned int *m_array);
 
-static R_UINT step1a (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step1b (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step1d (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step2 (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step3 (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step4 (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step5a (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
-static R_UINT step5b (R_UCHAR *wrd, R_UINT *len, R_UINT *m);
+static unsigned int step1a (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step1b (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step1c (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step1d (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step2 (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step3 (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step4 (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step5a (unsigned char *wrd, unsigned int *len, unsigned int *m);
+static unsigned int step5b (unsigned char *wrd, unsigned int *len, unsigned int *m);
 
-static void unstep1a (R_UCHAR *wrd, R_UINT *len, enum S_STEM1a result);
-static void unstep1b (R_UCHAR *wrd, R_UINT *len, enum S_STEM1b result);
-static void unstep1c (R_UCHAR *wrd, R_UINT *len, enum S_STEM1c result);
-static void unstep1d (R_UCHAR *wrd, R_UINT *len, enum S_STEM1d result);
-static void unstep2 (R_UCHAR *wrd, R_UINT *len, enum S_STEM2 result);
-static void unstep3 (R_UCHAR *wrd, R_UINT *len, enum S_STEM3 result);
-static void unstep4 (R_UCHAR *wrd, R_UINT *len, enum S_STEM4 result);
-static void unstep5a (R_UCHAR *wrd, R_UINT *len, enum S_STEM5a result);
-static void unstep5b (R_UCHAR *wrd, R_UINT *len, enum S_STEM5b result);
+static void unstep1a (unsigned char *wrd, unsigned int *len, enum S_STEM1a result);
+static void unstep1b (unsigned char *wrd, unsigned int *len, enum S_STEM1b result);
+static void unstep1c (unsigned char *wrd, unsigned int *len, enum S_STEM1c result);
+static void unstep1d (unsigned char *wrd, unsigned int *len, enum S_STEM1d result);
+static void unstep2 (unsigned char *wrd, unsigned int *len, enum S_STEM2 result);
+static void unstep3 (unsigned char *wrd, unsigned int *len, enum S_STEM3 result);
+static void unstep4 (unsigned char *wrd, unsigned int *len, enum S_STEM4 result);
+static void unstep5a (unsigned char *wrd, unsigned int *len, enum S_STEM5a result);
+static void unstep5b (unsigned char *wrd, unsigned int *len, enum S_STEM5b result);
 
-static R_UINT packModifier (enum S_STEM1a result1a, enum S_STEM1b result1b, enum S_STEM1c result1c, enum S_STEM1d result1d, enum S_STEM2 result2, enum S_STEM3 result3, enum S_STEM4 result4, enum S_STEM5a result5a, enum S_STEM5b result5b);
-static void unpackModifier (R_UINT modifier, enum S_STEM1a *result1a, enum S_STEM1b *result1b, enum S_STEM1c *result1c, enum S_STEM1d *result1d, enum S_STEM2 *result2, enum S_STEM3 *result3, enum S_STEM4 *result4, enum S_STEM5a *result5a, enum S_STEM5b *result5b);
+static unsigned int packModifier (enum S_STEM1a result1a, enum S_STEM1b result1b, enum S_STEM1c result1c, enum S_STEM1d result1d, enum S_STEM2 result2, enum S_STEM3 result3, enum S_STEM4 result4, enum S_STEM5a result5a, enum S_STEM5b result5b);
+static void unpackModifier (unsigned int modifier, enum S_STEM1a *result1a, enum S_STEM1b *result1b, enum S_STEM1c *result1c, enum S_STEM1d *result1d, enum S_STEM2 *result2, enum S_STEM3 *result3, enum S_STEM4 *result4, enum S_STEM5a *result5a, enum S_STEM5b *result5b);
 
 
-static R_UINT *findM (R_UCHAR *wrd, R_UINT len, R_UINT *m_array) {
-  R_UINT i = 0;
-  R_UINT m = 0;
+static unsigned int *findM (unsigned char *wrd, unsigned int len, unsigned int *m_array) {
+  unsigned int i = 0;
+  unsigned int m = 0;
   enum CV status = UNKNOWN;
   enum CV prev_status = UNKNOWN;
 
@@ -137,9 +115,9 @@ static R_UINT *findM (R_UCHAR *wrd, R_UINT len, R_UINT *m_array) {
 }
 
 
-static R_UINT step1a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step1a (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM1a result = NONE_1a;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
 
   CHOP (wrd, *len, "'d", 2, 2, D_1a, m);
   CHOP (wrd, *len, "'m", 2, 2, M_1a, m);
@@ -153,13 +131,13 @@ static R_UINT step1a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step1b (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step1b (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM1b result = NONE_1b;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
 
   CHOP (wrd, *len, "sses", 4, 2, ES_1b, m);
   CHOP (wrd, *len, "ies", 3, 2, ES_1b, m);
-  if (((*len) > 2) && (wrd[(*len) - 2] != (R_UCHAR) 's')) {
+  if (((*len) > 2) && (wrd[(*len) - 2] != (unsigned char) 's')) {
     CHOP (wrd, *len, "s", 1, 1, S_1b, m);
   }
 
@@ -167,18 +145,18 @@ static R_UINT step1b (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step1c (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM1c result = NONE_1c;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
   enum CV second_last = UNKNOWN;
   enum CV third_last = UNKNOWN;
   enum CV fourth_last = UNKNOWN;
-  R_UINT i = 0;
+  unsigned int i = 0;
 
   CHOP_M (wrd, *len, "eed", 3, 1, E_ED_1c, m, 0);
 
   if (((*len) > 3) && (memcmp (wrd + (*len) - 2, "ed", 2) == 0)) {
-    match_result = R_TRUE;
+    match_result = true;
     for (i = 0; i < (*len) - 2; i++) {
       if (CLASSIFYCHAR (wrd, i) == VOWEL) {
         (*len) -= 2;
@@ -189,7 +167,7 @@ static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
     }
   }
   else if (((*len) > 4) && (memcmp (wrd + (*len) - 3, "ing", 3) == 0)) {
-    match_result = R_TRUE;
+    match_result = true;
     for (i = 0; i < (*len) - 3; i++) {
       if (CLASSIFYCHAR (wrd, i) == VOWEL) {
         (*len) -= 3;
@@ -204,14 +182,14 @@ static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
     if ((memcmp (wrd + (*len) - 2, "at", 2) == 0) ||
         (memcmp (wrd + (*len) - 2, "bl", 2) == 0) ||
         (memcmp (wrd + (*len) - 2, EN_IZ, 2) == 0)) {
-      wrd[*len] = (R_UCHAR) 'e';
+      wrd[*len] = (unsigned char) 'e';
       (*len)++;
       result++;
       m = findM (wrd, *len, m);
       return (result);
     }
 
-    if ((*len > 2) && (wrd[(*len) - 1] == wrd[(*len) - 2]) && (CLASSIFYCHAR (wrd, (*len) - 1) == CONSONANT) && ((wrd[(*len) - 1] != (R_UCHAR) 'l') && (wrd[(*len) - 1] != (R_UCHAR) 's') && (wrd[(*len) - 1] != (R_UCHAR) 'z'))) {
+    if ((*len > 2) && (wrd[(*len) - 1] == wrd[(*len) - 2]) && (CLASSIFYCHAR (wrd, (*len) - 1) == CONSONANT) && ((wrd[(*len) - 1] != (unsigned char) 'l') && (wrd[(*len) - 1] != (unsigned char) 's') && (wrd[(*len) - 1] != (unsigned char) 'z'))) {
       (*len)--;
       result = result + 2;
       m = findM (wrd, *len, m);
@@ -228,8 +206,8 @@ static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
         fourth_last = CLASSIFYCHAR (wrd, (*len) - 3);
       }
       if ((second_last == CONSONANT) && (third_last == VOWEL) && (fourth_last == CONSONANT)) {
-        if ((wrd[(*len) - 1] != (R_UCHAR) 'w') && (wrd[(*len) - 1] != (R_UCHAR) 'x') && (wrd[(*len) - 1] != (R_UCHAR) 'y')) {
-          wrd[*len] = (R_UCHAR) 'e';
+        if ((wrd[(*len) - 1] != (unsigned char) 'w') && (wrd[(*len) - 1] != (unsigned char) 'x') && (wrd[(*len) - 1] != (unsigned char) 'y')) {
+          wrd[*len] = (unsigned char) 'e';
           (*len)++;
           result++;
          }
@@ -242,14 +220,14 @@ static R_UINT step1c (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step1d (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step1d (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM1d result = NONE_1d;
-  R_UINT i = 0;
+  unsigned int i = 0;
 
-  if (wrd[(*len) - 1] == (R_UCHAR) 'y') {
+  if (wrd[(*len) - 1] == (unsigned char) 'y') {
     for (i = 0; i < (*len) - 1; i++) {
       if (CLASSIFYCHAR (wrd, i) == VOWEL) {
-        wrd[(*len) - 1] = (R_UCHAR) 'i';
+        wrd[(*len) - 1] = (unsigned char) 'i';
         result = Y_I_1d;
         return (result);
       }
@@ -260,9 +238,9 @@ static R_UINT step1d (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step2 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step2 (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM2 result = NONE_2;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
 
   MOD_CHOP_M (wrd, *len, "ational", 7, 5, "e", 1, IONAL_E_2, m, 0);
   CHOP_M (wrd, *len, "tional", 6, 2, AL_2, m, 0);
@@ -294,9 +272,9 @@ static R_UINT step2 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step3 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step3 (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM3 result = NONE_3;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
 
   /*  Step 3  */
   CHOP_M (wrd, *len, "icate", 5, 3, ATE_3, m, 0);
@@ -311,9 +289,9 @@ static R_UINT step3 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step4 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step4 (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM4 result = NONE_4;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
 
   /*  Step 4  */
   CHOP_M (wrd, *len, "al", 2, 2, AL_4, m, 1);
@@ -328,7 +306,7 @@ static R_UINT step4 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
   CHOP_M (wrd, *len, "ment", 4, 4, MENT_4, m, 1);
   CHOP_M (wrd, *len, "ent", 3, 3, ENT_4, m, 1);
 
-  if ((*len > 4) && ((wrd[(*len) - 4] == (R_UCHAR) 's') || (wrd[(*len) - 4] == (R_UCHAR) 't'))) {
+  if ((*len > 4) && ((wrd[(*len) - 4] == (unsigned char) 's') || (wrd[(*len) - 4] == (unsigned char) 't'))) {
     CHOP_M (wrd, *len, "ion", 3, 3, ION_4, m, 1);
   }
 
@@ -344,9 +322,9 @@ static R_UINT step4 (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step5a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step5a (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM5a result = NONE_5a;
-  R_BOOLEAN match_result = R_FALSE;
+  bool match_result = false;
   enum CV second_last = UNKNOWN;
   enum CV third_last = UNKNOWN;
   enum CV fourth_last = UNKNOWN;
@@ -355,10 +333,10 @@ static R_UINT step5a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
   CHOP_M_NORETURN (wrd, *len, "e", 1, 1, E_5a, m, 1);
 
   /*  Deviation from Porter algorithm  */
-  match_result = R_FALSE;
+  match_result = false;
 
-  if ((match_result == R_FALSE) && ((*len) > 2)) {
-    if ((wrd[(*len) - 1] == (R_UCHAR) 'e') && (m[(*len) - 2] == 1)) {
+  if ((match_result == false) && ((*len) > 2)) {
+    if ((wrd[(*len) - 1] == (unsigned char) 'e') && (m[(*len) - 2] == 1)) {
       second_last = CLASSIFYCHAR (wrd, (*len) - 2);
       third_last = CLASSIFYCHAR (wrd, (*len) - 3);
       if ((*len) == 3) {
@@ -368,9 +346,9 @@ static R_UINT step5a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
         fourth_last = CLASSIFYCHAR (wrd, (*len) - 4);
       }
 
-      if ((second_last == VOWEL) || (third_last == CONSONANT) || 
-          (fourth_last == VOWEL) || ((wrd[(*len) - 2] == (R_UCHAR) 'w') ||
-          (wrd[(*len) - 2] == (R_UCHAR) 'x') || (wrd[(*len) - 2] == (R_UCHAR) 'y'))) {
+      if ((second_last == VOWEL) || (third_last == CONSONANT) ||
+          (fourth_last == VOWEL) || ((wrd[(*len) - 2] == (unsigned char) 'w') ||
+          (wrd[(*len) - 2] == (unsigned char) 'x') || (wrd[(*len) - 2] == (unsigned char) 'y'))) {
         CHOP (wrd, *len, "e", 1, 1, E_5a, m);
       }
     }
@@ -380,21 +358,21 @@ static R_UINT step5a (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
 }
 
 
-static R_UINT step5b (R_UCHAR *wrd, R_UINT *len, R_UINT *m) {
+static unsigned int step5b (unsigned char *wrd, unsigned int *len, unsigned int *m) {
   enum S_STEM5b result = NONE_5b;
 
   /*  Step 5b  */
   /*  No check for consonant, since a check for 'l' already done.  */
-  if ((*len > 2) && (m[(*len) - 2] > 1) && (wrd[(*len) - 1] == wrd[(*len) - 2]) && (wrd[(*len) - 1] == (R_UCHAR) 'l')) {
+  if ((*len > 2) && (m[(*len) - 2] > 1) && (wrd[(*len) - 1] == wrd[(*len) - 2]) && (wrd[(*len) - 1] == (unsigned char) 'l')) {
     (*len)--;
     result = DOUBLE_5b;
   }
 
   return (result);
-}      
+}
 
 
-static void unstep1a (R_UCHAR *wrd, R_UINT *len, enum S_STEM1a result) {
+static void unstep1a (unsigned char *wrd, unsigned int *len, enum S_STEM1a result) {
   UNCHOP (wrd, *len, "'d", 2, 0, D_1a);
   UNCHOP (wrd, *len, "'m", 2, 0, M_1a);
   UNCHOP (wrd, *len, "'s", 2, 0, S_1a);
@@ -407,14 +385,14 @@ static void unstep1a (R_UCHAR *wrd, R_UINT *len, enum S_STEM1a result) {
 }
 
 
-static void unstep1b (R_UCHAR *wrd, R_UINT *len, enum S_STEM1b result) {
+static void unstep1b (unsigned char *wrd, unsigned int *len, enum S_STEM1b result) {
   UNCHOP (wrd, *len, "es", 2, 0, ES_1b);
   UNCHOP (wrd, *len, "s", 1, 0, S_1b);
 
   return;
 }
 
-static void unstep1c (R_UCHAR *wrd, R_UINT *len, enum S_STEM1c result) {
+static void unstep1c (unsigned char *wrd, unsigned int *len, enum S_STEM1c result) {
   if ((result == DOUBLE_ED_1c) || (result == DOUBLE_ING_1c)) {
     wrd[(*len)] = wrd[(*len) - 1];
     (*len)++;
@@ -432,14 +410,14 @@ static void unstep1c (R_UCHAR *wrd, R_UINT *len, enum S_STEM1c result) {
 }
 
 
-static void unstep1d (R_UCHAR *wrd, R_UINT *len, enum S_STEM1d result) {
+static void unstep1d (unsigned char *wrd, unsigned int *len, enum S_STEM1d result) {
   UNCHOP (wrd, *len, "y", 1, 1, Y_I_1d);
 
   return;
 }
 
 
-static void unstep2 (R_UCHAR *wrd, R_UINT *len, enum S_STEM2 result) {
+static void unstep2 (unsigned char *wrd, unsigned int *len, enum S_STEM2 result) {
   UNCHOP (wrd, *len, "ional", 5, 1, IONAL_E_2);
   UNCHOP (wrd, *len, "al", 2, 0, AL_2);
   UNCHOP (wrd, *len, "i", 1, 1, I_E_2);
@@ -460,7 +438,7 @@ static void unstep2 (R_UCHAR *wrd, R_UINT *len, enum S_STEM2 result) {
 }
 
 
-static void unstep3 (R_UCHAR *wrd, R_UINT *len, enum S_STEM3 result) {
+static void unstep3 (unsigned char *wrd, unsigned int *len, enum S_STEM3 result) {
   UNCHOP (wrd, *len, "ate", 3, 0, ATE_3);
   UNCHOP (wrd, *len, "ative", 5, 0, ATIVE_3);
   UNCHOP (wrd, *len, "ize", 3, 0, IZE_3);
@@ -473,7 +451,7 @@ static void unstep3 (R_UCHAR *wrd, R_UINT *len, enum S_STEM3 result) {
 }
 
 
-static void unstep4 (R_UCHAR *wrd, R_UINT *len, enum S_STEM4 result) {
+static void unstep4 (unsigned char *wrd, unsigned int *len, enum S_STEM4 result) {
   UNCHOP (wrd, *len, "al", 2, 0, AL_4);
   UNCHOP (wrd, *len, "ance", 4, 0, ANCE_4);
   UNCHOP (wrd, *len, "ence", 4, 0, ENCE_4);
@@ -498,7 +476,7 @@ static void unstep4 (R_UCHAR *wrd, R_UINT *len, enum S_STEM4 result) {
 }
 
 
-static void unstep5a (R_UCHAR *wrd, R_UINT *len, enum S_STEM5a result) {
+static void unstep5a (unsigned char *wrd, unsigned int *len, enum S_STEM5a result) {
 
   UNCHOP (wrd, *len, "e", 1, 0, E_5a);
 
@@ -506,7 +484,7 @@ static void unstep5a (R_UCHAR *wrd, R_UINT *len, enum S_STEM5a result) {
 }
 
 
-static void unstep5b (R_UCHAR *wrd, R_UINT *len, enum S_STEM5b result) {
+static void unstep5b (unsigned char *wrd, unsigned int *len, enum S_STEM5b result) {
 
   if (result == DOUBLE_5b) {
     wrd[(*len)] = wrd[(*len) - 1];
@@ -517,9 +495,9 @@ static void unstep5b (R_UCHAR *wrd, R_UINT *len, enum S_STEM5b result) {
 }
 
 
-R_UINT stem (R_UCHAR *wrd, R_UINT *wrd_len, R_UINT *m) {
-  R_UINT modifier = 0;
-  R_UINT len = *wrd_len;
+unsigned int stem (unsigned char *wrd, unsigned int *wrd_len, unsigned int *m) {
+  unsigned int modifier = 0;
+  unsigned int len = *wrd_len;
   enum S_STEM1a result1a = NONE_1a;
   enum S_STEM1b result1b = NONE_1b;
   enum S_STEM1c result1c = NONE_1c;
@@ -536,7 +514,7 @@ R_UINT stem (R_UCHAR *wrd, R_UINT *wrd_len, R_UINT *m) {
   }
   /*  Do not bother stemming words if they are 3 characters or shorter
   **  or are a tag.  */
-  if ((len <= 3) || (wrd[len - 1] == (R_UCHAR) '>')) {
+  if ((len <= 3) || (wrd[len - 1] == (unsigned char) '>')) {
     return (0);
   }
 
@@ -562,7 +540,7 @@ R_UINT stem (R_UCHAR *wrd, R_UINT *wrd_len, R_UINT *m) {
 }
 
 
-R_UINT unstem (R_UCHAR *wrd, R_UINT wrd_len, R_UINT modifier) {
+unsigned int unstem (unsigned char *wrd, unsigned int wrd_len, unsigned int modifier) {
   enum S_STEM1a result1a = NONE_1a;
   enum S_STEM1b result1b = NONE_1b;
   enum S_STEM1c result1c = NONE_1c;
@@ -572,9 +550,9 @@ R_UINT unstem (R_UCHAR *wrd, R_UINT wrd_len, R_UINT modifier) {
   enum S_STEM4 result4 = NONE_4;
   enum S_STEM5a result5a = NONE_5a;
   enum S_STEM5b result5b = NONE_5b;
-  R_UINT len = wrd_len;
+  unsigned int len = wrd_len;
 
-  if ((modifier == 0) || (wrd[wrd_len - 1] == (R_UCHAR) '>')) {
+  if ((modifier == 0) || (wrd[wrd_len - 1] == (unsigned char) '>')) {
     return (len);
   }
 
@@ -616,40 +594,40 @@ R_UINT unstem (R_UCHAR *wrd, R_UINT wrd_len, R_UINT modifier) {
 }
 
 
-static R_UINT packModifier (enum S_STEM1a result1a, enum S_STEM1b result1b, enum S_STEM1c result1c, enum S_STEM1d result1d, enum S_STEM2 result2, enum S_STEM3 result3, enum S_STEM4 result4, enum S_STEM5a result5a, enum S_STEM5b result5b) {
-  R_UINT modifier = 0;
+static unsigned int packModifier (enum S_STEM1a result1a, enum S_STEM1b result1b, enum S_STEM1c result1c, enum S_STEM1d result1d, enum S_STEM2 result2, enum S_STEM3 result3, enum S_STEM4 result4, enum S_STEM5a result5a, enum S_STEM5b result5b) {
+  unsigned int modifier = 0;
 
-  modifier = (R_UINT) result1a;
+  modifier = (unsigned int) result1a;
 
   modifier = modifier << 2;
-  modifier |= (R_UINT) result1b;
+  modifier |= (unsigned int) result1b;
 
   modifier = modifier << 3;
-  modifier |= (R_UINT) result1c;
+  modifier |= (unsigned int) result1c;
 
   modifier = modifier << 1;
-  modifier |= (R_UINT) result1d;
+  modifier |= (unsigned int) result1d;
 
   modifier = modifier << 4;
-  modifier |= (R_UINT) result2;
+  modifier |= (unsigned int) result2;
 
   modifier = modifier << 3;
-  modifier |= (R_UINT) result3;
+  modifier |= (unsigned int) result3;
 
   modifier = modifier << 5;
-  modifier |= (R_UINT) result4;
+  modifier |= (unsigned int) result4;
 
   modifier = modifier << 1;
-  modifier |= (R_UINT) result5a;
+  modifier |= (unsigned int) result5a;
 
   modifier = modifier << 1;
-  modifier |= (R_UINT) result5b;
+  modifier |= (unsigned int) result5b;
 
   return (modifier);
 }
 
 
-static void unpackModifier (R_UINT modifier, enum S_STEM1a *result1a, enum S_STEM1b *result1b, enum S_STEM1c *result1c, enum S_STEM1d *result1d, enum S_STEM2 *result2, enum S_STEM3 *result3, enum S_STEM4 *result4, enum S_STEM5a *result5a, enum S_STEM5b *result5b) {
+static void unpackModifier (unsigned int modifier, enum S_STEM1a *result1a, enum S_STEM1b *result1b, enum S_STEM1c *result1c, enum S_STEM1d *result1d, enum S_STEM2 *result2, enum S_STEM3 *result3, enum S_STEM4 *result4, enum S_STEM5a *result5a, enum S_STEM5b *result5b) {
 
   *result5b = (enum S_STEM5b) modifier & 0x1;
   modifier = modifier >> 1;

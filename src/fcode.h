@@ -1,26 +1,3 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 #ifndef FCODE_H
 #define FCODE_H
 
@@ -36,25 +13,25 @@
 **  necessary.  */
 #define INIT_FCODE_SIZE 1024
 
-#define FCODETREENULL	((struct fcodetree *) NULL)
-#define FILENULL	((FILE *) NULL)
-#define CHARNULL	((char *) NULL)
+#define FCODETREENULL  ((struct fcodetree *) NULL)
+#define FILENULL  ((FILE *) NULL)
+#define CHARNULL  ((char *) NULL)
 
 typedef struct fcodetree {
-  R_UCHAR *item;
-  R_UINT len;
-  R_UINT freq;
-  R_UINT id;
+  unsigned char *item;
+  unsigned int len;
+  unsigned int freq;
+  unsigned int id;
   struct fcodetree *left, *rght, *prnt;
 } FCODETREE;
 
 
 typedef struct fcodenode {
-  R_UCHAR *item;
-  R_UINT len;
-  R_UINT freq;
-  R_UINT init_id;
-  R_UINT id;
+  unsigned char *item;
+  unsigned int len;
+  unsigned int freq;
+  unsigned int init_id;
+  unsigned int id;
 } FCODENODE;
 
 
@@ -97,10 +74,10 @@ typedef struct fcodenode {
     } \
   } while (0)
 
-R_UINT fcodeEncode (R_UCHAR *item, R_UINT len, FCODETREE **fcode_root, R_UINT *itemcount, R_UINT *item_compares, R_UINT *total_itemlen);
+unsigned int fcodeEncode (unsigned char *item, unsigned int len, FCODETREE **fcode_root, unsigned int *itemcount, unsigned int *item_compares, unsigned int *total_itemlen);
 
-void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *fcode_dict, R_UINT *fcode_map, R_BOOLEAN printsorted, R_UINT nitems, enum WORDTYPE type);
+void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *fcode_dict, unsigned int *fcode_map, bool printsorted, unsigned int nitems, enum WORDTYPE type);
 
-R_UINT fcodeDictDecode (FILE_STRUCT *file_info, FCODENODE **fcode_dict, R_UINT nitems, enum WORDTYPE type);
+unsigned int fcodeDictDecode (FILE_STRUCT *file_info, FCODENODE **fcode_dict, unsigned int nitems, enum WORDTYPE type);
 
 #endif

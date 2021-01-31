@@ -1,0 +1,20 @@
+2009-08-13  Raymond Wan  <r.wan@aist.go.jp>
+
+  * All .h and .c files (data types):  Data types starting with R_ removed.
+
+  * All .h and .c files (#include):  Include and use stdbool.h (true/false).
+
+  * Replaces CHANGES with ChangeLog
+
+2007-04-02  Raymond Wan  <rwan@kuicr.kyoto-u.ac.jp>
+
+  * Minor changes to names of files and comments.  [version 1.0.1]
+
+2007-02-24  Raymond Wan  <rwan@kuicr.kyoto-u.ac.jp>
+
+  * Initial software release.  [version 1.0]
+
+
+Copyright 2009 Raymond Wan
+Copying and distribution of this file, with or without modification, are
+permitted provided the copyright notice and this notice are preserved.

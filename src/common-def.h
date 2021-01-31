@@ -1,28 +1,29 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+/*******************************************************************/
+/*!
+    \file common-def.h
+    Header file for common definitions.
+    
+    $LastChangedDate: 2013-09-10 02:02:18 +0800 (Tue, 10 Sep 2013) $
+    $LastChangedRevision: 10 $
+
 */
+/*******************************************************************/
+
 
 #ifndef COMMON_DEF_H
 #define COMMON_DEF_H
+
+enum VERBOSE { NOVERBOSE = 0, ONELINE = 1, INFO = 2, TEST = 3, ALL = 4 };
+
+#define VERBOSE_ONELINE(X, Y) \
+  if (X >= ONELINE) { Y }
+
+#define VERBOSE_INFO(X, Y) \
+  if (X >= INFO) { Y }
+
+#define VERBOSE_TEST(X, Y) \
+  if (X >= TEST) { Y }
+
 
 /***************************************************************************
 Redefine common primitive data types
@@ -70,7 +71,7 @@ Bit masking
     else { \
       fprintf (stderr, "Error opening %s.\n", FILENAME); \
     } \
-    fprintf (stderr, "Error %s %s.\n", MODE == "w" ? "creating" : "opening", FILENAME); \
+    fprintf (stderr, "Error %s %s.\n", (strcmp (MODE, "w") == 0) ? "creating" : "opening", FILENAME); \
     exit (EXIT_FAILURE); \
   }
 

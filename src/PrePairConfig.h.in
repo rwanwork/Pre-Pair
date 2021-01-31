@@ -1,0 +1,20 @@
+/*******************************************************************/
+/*!
+    \file PrePairConfig.h[.in]
+    Pre-Pair configuration file.
+    
+    $LastChangedDate: 2013-09-07 22:09:18 +0800 (Sat, 07 Sep 2013) $
+    $LastChangedRevision: 8 $
+
+*/
+/*******************************************************************/
+
+#ifndef PREPAIR_CONFIG_H
+#define PREPAIR_CONFIG_H
+
+//  Version information for Pre-Pair
+#define PrePair_VERSION_MAJOR @PREPAIR_VERSION_MAJOR@
+#define PrePair_VERSION_MINOR @PREPAIR_VERSION_MINOR@
+
+#endif
+

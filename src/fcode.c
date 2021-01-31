@@ -1,31 +1,9 @@
-/*    Pre-Pair
-**    Word-based Pre-processor for Re-Pair
-**    Copyright (C) 2003, 2007 by Raymond Wan (rwan@kuicr.kyoto-u.ac.jp)
-**
-**    Version 1.0.1 -- 2007/04/02
-**
-**    This file is part of the Pre-Pair software.
-**
-**    Pre-Pair is free software; you can redistribute it and/or modify
-**    it under the terms of the GNU General Public License as published by
-**    the Free Software Foundation; either version 2 of the License, or
-**    (at your option) any later version.
-**
-**    Pre-Pair is distributed in the hope that it will be useful,
-**    but WITHOUT ANY WARRANTY; without even the implied warranty of
-**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-**    GNU General Public License for more details.
-**
-**    You should have received a copy of the GNU General Public License along
-**    with Pre-Pair; if not, write to the Free Software Foundation, Inc.,
-**    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "common-def.h"
 #include "wmalloc.h"
@@ -34,7 +12,7 @@
 #include "fcode.h"
 
 static FCODETREE *splayFcode (FCODETREE *p);
-static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, R_BOOLEAN printsorted, R_UINT *fcode_map, R_UINT *pos);
+static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, bool printsorted, unsigned int *fcode_map, unsigned int *pos);
 
 /* Splay the tree about node p. The new root (i.e. node p) is
 ** returned. The splay operation is described in Sleator and Tarjan,
@@ -51,20 +29,20 @@ static FCODETREE *splayFcode (FCODETREE *p) {
       if (g == FCODETREENULL)
         ROTATER (p,q);
       else if (q == g -> left) {
-	ROTATER (q,g); ROTATER (p,q);
+  ROTATER (q,g); ROTATER (p,q);
       }
       else {
-	ROTATER (p,q); ROTATEL (p,g);
+  ROTATER (p,q); ROTATEL (p,g);
       }
     }
     else {
       if (g == FCODETREENULL)
         ROTATEL (p,q);
       else if (q == g -> rght) {
-	ROTATEL (q,g); ROTATEL (p,q);
+  ROTATEL (q,g); ROTATEL (p,q);
       }
       else {
-	ROTATEL (p,q); ROTATER (p,g);
+  ROTATEL (p,q); ROTATER (p,g);
       }
     }
     q = p -> prnt;
@@ -74,7 +52,7 @@ static FCODETREE *splayFcode (FCODETREE *p) {
 }
 
 
-static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, R_BOOLEAN printsorted, R_UINT *fcode_map, R_UINT *pos) {
+static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, bool printsorted, unsigned int *fcode_map, unsigned int *pos) {
   /*  Word id #0 not used  */
   fcode_dict[0].item = NULL;
   fcode_dict[0].init_id = 0;
@@ -91,7 +69,7 @@ static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, R_BOOLEAN pr
   fcode_dict[*pos].id = *pos;
   fcode_map[t -> id] = *pos;
   (*pos)++;
-  if (printsorted == R_TRUE) {
+  if (printsorted == true) {
     printf ("%10u\t", t -> freq);
     uprintf (stderr, t -> item, t -> len);
     printf (" (%u)\n", t -> len);
@@ -101,13 +79,13 @@ static void traverseFcodeDict (FCODETREE *t, FCODENODE *fcode_dict, R_BOOLEAN pr
 
 
 /*
-**  Process the item by inserting it into a splay tree (or updating the 
+**  Process the item by inserting it into a splay tree (or updating the
 **  frequency if it already exists).  Return the item's id.
 */
-R_UINT fcodeEncode (R_UCHAR *item, R_UINT len, FCODETREE **fcode_root, R_UINT *itemcount, R_UINT *item_compares, R_UINT *total_itemlen) {
-  R_INT cmp = 0;
+unsigned int fcodeEncode (unsigned char *item, unsigned int len, FCODETREE **fcode_root, unsigned int *itemcount, unsigned int *item_compares, unsigned int *total_itemlen) {
+  int cmp = 0;
   FCODETREE *p, *q;
-  R_UINT key = 0;
+  unsigned int key = 0;
 
   if (len == 0) {
     return (EMPTY_FCODE);
@@ -138,7 +116,7 @@ R_UINT fcodeEncode (R_UCHAR *item, R_UINT len, FCODETREE **fcode_root, R_UINT *i
     /* the search failed to find the item */
     /* make and fill a new tree node */
     p = wmalloc (sizeof (FCODETREE) * 1);
-    p -> item = wmalloc (sizeof (R_UCHAR) * (size_t) len);
+    p -> item = wmalloc (sizeof (unsigned char) * (size_t) len);
     ustrncpy (p -> item, item, len);
     p -> id = *itemcount;
     (*itemcount)++;
@@ -161,7 +139,7 @@ R_UINT fcodeEncode (R_UCHAR *item, R_UINT len, FCODETREE **fcode_root, R_UINT *i
       }
     }
     else {
-	*(fcode_root) = p;
+  *(fcode_root) = p;
     }
   }
 
@@ -171,13 +149,13 @@ R_UINT fcodeEncode (R_UCHAR *item, R_UINT len, FCODETREE **fcode_root, R_UINT *i
 }
 
 
-void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *fcode_dict, R_UINT *fcode_map, R_BOOLEAN printsorted, R_UINT nitems, enum WORDTYPE type) {
-  R_UINT curr = FIRST_FCODE;
+void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *fcode_dict, unsigned int *fcode_map, bool printsorted, unsigned int nitems, enum WORDTYPE type) {
+  unsigned int curr = FIRST_FCODE;
   FILE *fp = NULL;
-  R_UCHAR *buf = NULL;
-  R_UCHAR *p = NULL;
-  R_UCHAR *end = NULL;
-  R_UINT pos = FIRST_FCODE;
+  unsigned char *buf = NULL;
+  unsigned char *p = NULL;
+  unsigned char *end = NULL;
+  unsigned int pos = FIRST_FCODE;
 
   if (type == ISWORD) {
     fp = file_info -> wd_fp;
@@ -197,14 +175,14 @@ void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *
 
   /*  Do not encode word in position 0, the zero-length word  */
   while (curr < nitems) {
-    *p = (R_UCHAR) fcode_dict[curr].len;
+    *p = (unsigned char) fcode_dict[curr].len;
     (p)++;
     memcpy (p, fcode_dict[curr].item, (size_t) fcode_dict[curr].len);
     (p) += fcode_dict[curr].len;
     curr++;
 
     if (p > end) {
-      (void) fwrite (buf, sizeof (R_UCHAR), (size_t) (p - buf), fp);
+      (void) fwrite (buf, sizeof (unsigned char), (size_t) (p - buf), fp);
       p = buf;
     }
   }
@@ -220,17 +198,17 @@ void fcodeDictEncode (FILE_STRUCT *file_info, FCODETREE *fcode_root, FCODENODE *
 }
 
 
-R_UINT fcodeDictDecode (FILE_STRUCT *file_info, FCODENODE **fcode_dict, R_UINT nitems, enum WORDTYPE type) {
-  R_UINT i = 0;
-  R_UINT buffsize = 0;
-  R_UINT diff;
+unsigned int fcodeDictDecode (FILE_STRUCT *file_info, FCODENODE **fcode_dict, unsigned int nitems, enum WORDTYPE type) {
+  unsigned int i = 0;
+  unsigned int buffsize = 0;
+  unsigned int diff;
 
   FILE *fp = NULL;
-  R_UCHAR *buf = NULL;
-  R_UCHAR *p = NULL;
-  R_UCHAR *end = NULL;
+  unsigned char *buf = NULL;
+  unsigned char *p = NULL;
+  unsigned char *end = NULL;
 
-  R_UINT init_nitems = nitems;
+  unsigned int init_nitems = nitems;
 
   if (type == ISWORD) {
     fp = file_info -> wd_fp;
@@ -251,22 +229,22 @@ R_UINT fcodeDictDecode (FILE_STRUCT *file_info, FCODENODE **fcode_dict, R_UINT n
 
   p = end;
   i = FIRST_FCODE;
-  while (R_TRUE) {
+  while (true) {
     if (end - p < (MAXWORDLEN + MAXWORDLEN_HEADER)) {
-      diff = (R_UINT) (end - p);
+      diff = (unsigned int) (end - p);
       memcpy (buf, p, (size_t) diff);
-      buffsize = (R_UINT) fread (buf + diff, sizeof (R_UCHAR), (size_t) (OUTBUFMAX - diff), fp);
+      buffsize = (unsigned int) fread (buf + diff, sizeof (unsigned char), (size_t) (OUTBUFMAX - diff), fp);
       buffsize += diff;
       end = buf + buffsize;
       p = buf;
     }
-    if ((p == end) && (feof (fp) == R_TRUE)) {
+    if ((p == end) && (feof (fp) == true)) {
       break;
     }
 
-    (*fcode_dict)[i].len = (R_UINT) (*p);
+    (*fcode_dict)[i].len = (unsigned int) (*p);
     (p)++;
-    (*fcode_dict)[i].item = wmalloc (sizeof (R_UCHAR) * ((*fcode_dict)[i].len));
+    (*fcode_dict)[i].item = wmalloc (sizeof (unsigned char) * ((*fcode_dict)[i].len));
     memcpy ((*fcode_dict)[i].item, p, (size_t) ((*fcode_dict)[i].len));
     (p) += (*fcode_dict)[i].len;
     i++;

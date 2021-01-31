@@ -83,7 +83,7 @@ If you have any information about bugs, suggestions for the documentation or jus
 Version
 -------
 
-Changes to this software are recorded in the file CHANGES up until April 2007.  Since moving the source code to GitHub on January 31, 2021, any changes are recorded in the repository's history.
+Changes to this software are recorded in the file ChangeLog up until August 2009.  Since moving the source code to GitHub on January 31, 2021, any changes are recorded in the repository's history.
 
 
 Copyright and License
