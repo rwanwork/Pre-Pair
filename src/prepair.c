@@ -268,7 +268,7 @@ void seqReEncode (FILE_STRUCT *file_info, unsigned int *map, enum WORDTYPE type)
   unsigned int *p = NULL;
 
   int result = 0;
-  
+
   temp_file = wmalloc (sizeof (unsigned char) * 9);
   map[0] = 0;
   if (type == ISWORD) {
@@ -289,6 +289,10 @@ void seqReEncode (FILE_STRUCT *file_info, unsigned int *map, enum WORDTYPE type)
   temp_mv = wmalloc (ustrlen (name) + ustrlen (temp_file) + 5);
   sprintf (temp_mv, "mv %s %s", name, temp_file);
   result = system (temp_mv);
+  if (result == -1) {
+    fprintf (stderr, "EE\tError in execution of the 'mv' command!");
+  }
+
   FOPEN (temp_file, temp_fp, "r");
   FOPEN (name, fp, "w");
   do {
@@ -319,6 +323,9 @@ void seqReEncode (FILE_STRUCT *file_info, unsigned int *map, enum WORDTYPE type)
 
   sprintf (temp_mv, "rm %s", temp_file);
   result = system (temp_mv);
+  if (result == -1) {
+    fprintf (stderr, "EE\tError in execution of the 'mv' command!");
+  }
 
   wfree (temp_mv);
   fclose (fp);
@@ -422,9 +429,11 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
   unsigned int *m = NULL;
   bool notdone = false;
 
+#ifdef CHARSTATS
   unsigned int wrd_array[MAXPRIMS];
   unsigned int nonwrd_array[MAXPRIMS];
   unsigned int i = 0;
+#endif
 
   unsigned char *src_buff = NULL;
   unsigned char *src_p = NULL;
@@ -436,10 +445,12 @@ void fileEncode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
   bool end_phrase = false;
 #endif
 
+#ifdef CHARSTATS
   for (i = 0; i < MAXPRIMS; i++) {
     wrd_array[i] = 0;
     nonwrd_array[i] = 0;
   }
+#endif
 
   m = wmalloc (sizeof (unsigned int) * word_info -> maxword);
   wrd_buff = wmalloc (sizeof (unsigned char) * word_info -> maxword);
@@ -566,15 +577,11 @@ void fileDecode (FILE_STRUCT *file_info, FILE *fp, WORD_STRUCT *word_info, NONWO
   unsigned char *nonwrd;
   unsigned int nonwrd_len;
   unsigned int nonwrd_key;
-  unsigned char *wrd_pos;
-  unsigned char *nonwrd_pos;
   unsigned char *space;
   unsigned int space_len = 0;
   unsigned char *newline;
   unsigned int newline_len = 0;
 
-  wrd_pos = NULL;
-  nonwrd_pos = NULL;
   wrd = wmalloc (sizeof (unsigned char) * word_info -> maxword);
   nonwrd = wmalloc (sizeof (unsigned char) * nonword_info -> maxnonword);
   space = wmalloc (sizeof (unsigned char) * nonword_info -> maxnonword);
